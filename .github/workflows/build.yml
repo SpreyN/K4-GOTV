@@ -1,0 +1,55 @@
+name: Build and Release K4-GOTV
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
+
+      # Optional debug step to see repo structure
+      - name: Debug directory structure
+        run: ls -R
+
+      - name: Build Plugin
+        run: |
+          echo "Building K4-GOTV plugin..."
+          dotnet publish src/K4-GOTV.csproj -c Release -o ./publish/addons/counterstrikesharp/plugins/K4GOTV
+
+      - name: Zip Plugin
+        run: |
+          cd publish
+          zip -q -r ../K4-GOTV.zip *
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: "K4-GOTV Build ${{ github.run_number }}"
+          tag_name: "v${{ github.run_number }}"
+          body: |
+            This release contains only the **K4-GOTV plugin**.
+            Extract the contents into your CS2 server directory:
+            
+            ```
+            cs2/addons/counterstrikesharp/plugins/
+            ```
+            
+            CounterStrikeSharp must already be installed on the server.
+          draft: false
+          prerelease: false
+          files: |
+            K4-GOTV.zip
